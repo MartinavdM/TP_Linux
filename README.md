@@ -166,10 +166,9 @@ La variable finit par un tiret pour indiquer au système d'utiliser le compilate
 
 ### 2.3.3 Hello World
 
+Le code du "Hello World" est le même que précédemment, cependant il faut faire attention que le fichier .c ne soit pas dans la dossier partagé de la VM car il peut y avoir une erreur de droit d’accès avec la CROSS-COMPILATION.
 
-
-
-
+Le résultat est le même que le code précédent, pareillement pour le code « parameter.c ».
 
 
 ## Bonus 1 : Hacking non-éthique 👀
