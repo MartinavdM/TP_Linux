@@ -130,8 +130,43 @@ int main(void)
 }
 ```
 
+## 2. Modules Kernel
 
-## 2. Module Kernel
+### 2.1 Accès aux registres
+
+### 2.2 Compilation de module noyau sur la VM
+
+On créé un module noyau qui permet de faire un hello world. On peut voir les informations du module avec la commande `modinfo` et on peut voir que le module est bien chargé avec la commande `lsmod`.
+
+![Alt text](img/modinfo.png)
+
+On peut ensuite executer le module avec la commande `insmod`
+![Alt text](img/moduleRun.png)
+
+Le module peut aussi prendre des paramètres :
+
+![Alt text](img/param1.png)
+![Alt text](img/param2.png)
+
+## 2.3 CrossCompilation de modules noyau
+
+### 2.3.2 Récupération de la configuration actuelle du noyau
+
+On lance ces lignes de commandes dans `~/linux-socfpga/`
+```bash
+export CROSS_COMPILE=<chemin_arm-linux-gnueabihf->
+export ARCH=arm
+make prepare
+make scripts
+```
+
+La commande export permet de définir des variables d'environnement. La variable CROSS_COMPILE permet de définir le compilateur croisé. La variable ARCH permet de définir l'architecture de la cible.
+
+La variable finit par un tiret pour indiquer au système d'utiliser le compilateur croisé spécifié, mais sans avoir à écrire explicitement "gcc" à la fin du chemin à chaque utilisation. C'est une convention utilisée dans le contexte des compilateurs croisés.
+
+### 2.3.3 Hello World
+
+
 
 
 
