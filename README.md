@@ -11,11 +11,133 @@ identifiant: root
 mot de passe:
 
 Grâce à la commande `df -h`, il est possible de connaitre la taille occupée dans la carte SD. Executer cette commande permet de voir que le système de fichier n'occupe pas l'ensemble de l'espace de la carte SD. Pour remédier à cela, nous exécutons la commande `./expan_rootfs.sh`, puis nous lançons un reboot de la cate avec la commande `./resize2fs_once`.
+![Alt text](img/tailleSD.png)
+
+
+### 1.3.3 Configuration réseau
+On configure la carte pour qu'elle soit accessible en SSH. Pour cela, on utilise la commande `ifconfig` pour connaitre l'adresse IP de la carte. On utilise ensuite la commande `ssh root@<adresse IP>` pour se connecter à la carte en SSH.
+On édite ensuite le fichier `/etc/network/interfaces`
+
+``` bash
+auto eth0
+iface eth0 inet static
+allow-hotplug eth0
+```
+## 1.4 Découverte de la cible
+### 1.4.1 Exploration des dossiers /sys/class et /proc
+![Alt text](img/lsdansroot.png)
+
+On récupère les informations sur le processeur avec la commande `cat /proc/cpuinfo`
+![Alt text](img/cpuinfo.png)
+
+On utilise iomem pour récupérer les informations de la mémoire
+![Alt text](img/iomem.png)
+
+![Alt text](img/sopc.png)
+
+Et on peut voir que `cat ioports` ne retourne pas d'informations
+
+Le répertoire `/sys/class` contient des informations sur les périphériques de la carte. On peut voir que la carte contient un périphérique `leds` qui permet de gérer les leds de la carte. On peut aussi voir que la carte contient un périphérique `gpio` qui permet de gérer les GPIO de la carte.
+
+Le répertoire `/proc` contient des informations sur les processus en cours d'exécution. On peut voir que la carte contient un fichier `cpuinfo` qui permet de récupérer des informations sur le processeur. On peut aussi voir que la carte contient un fichier `meminfo` qui permet de récupérer des informations sur la mémoire.
+
+### 1.4.2 Compilation croisée
+
+On installe la vm pour compiler le noyau linux. 
+
+
+### 1.4.3 Hello world !
+
+On programme et on compile on programme simple qui écrit "Hello world !" dans la console. On transfère ensuite le programme sur la carte et on l'exécute.
+```c
+#include <stdio.h>
+
+int main(int argc,char **argv){
+    printf("hello, world !\n");
+    return 0;
+}
+```
+On peut voir que le programme s'exécute correctement :
+
+![Alt text](img/helloWorldSimple.png)
+
+### 1.4.4 Accès au matériel
+
+On peut accèder au matériel de la carte grâce aux fichiers présents dans le répertoire `/sys`. On peut par exemple accèder aux leds de la carte grâce au fichier `/sys/class/leds/fpga_led1/brightness`. On créé un script qui permet de faire clignoter les leds de la carte.
+
+```bash
+#!/bin/bash
+# Boucle pour allumer et éteindre les 9 LEDs
+for i in {1..9}; do
+    echo "1" > "/sys/class/leds/fpga_led$i/brightness"
+    sleep 0.5  # Temps en secondes pendant lequel la LED est allumée
+    echo "0" > "/sys/class/leds/fpga_led$i/brightness"
+done
+```
+On voit alors les leds de la carte s'allumer et s'éteindre successivement.
+
+
+### 1.4.5 Chenillard
+
+On créé un programme en c cette fois pour réaliser un chenillard sur les leds de la carte. On transfère ensuite le programme sur la carte et on l'exécute.
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define NUM_LEDS 9
+
+int main(void)
+{
+    FILE * LED[NUM_LEDS];
+
+    for(int index = 0; index < 9; index++)
+    {
+        char name[300];
+        snprintf(name,300,"/sys/class/leds/fpga_led%d/brightness", index+1);
+        printf("sprint reussi %d\n\r",index);
+        LED[index] = fopen(name,"w");
+        if(LED[index]==NULL)
+        {
+            printf("Erreur lors de l'ouverture d'un fichier");
+            exit(1);
+        }
+    }
+    while(1)
+    { 
+        for(int i = 0; i<NUM_LEDS; i++)
+        {
+            if(i != 0)
+            {
+                printf("led %d OFF\r\n",(i-1));
+                fprintf(LED[i-1],"0");
+                fflush(LED[i-1]);
+            }
+            else
+            {
+                printf("last led OFF\r\n");
+                fprintf(LED[NUM_LEDS-1],"0");
+                fflush(LED[NUM_LEDS-1]);
+            }
+            printf("led %d\n\r",i);
+            fprintf(LED[i],"1");
+            fflush(LED[i]);
+            usleep(50000);
+        }
+    }
+    return 0;
+}
+```
+
+
 ## 2. Module Kernel
 
 
 
-## Bonus 1 : Hacking non-ethique 👀
+
+
+## Bonus 1 : Hacking non-éthique 👀
 
 Les cartes sont toutes connectées en réseau et on un mot de passe par défaut. Il est donc possible de se connecter à une carte à distance. Pour cela, il faut connaitre l'adresse IP de la carte.
 On utilise un scanner d'ip pour scanner le réseau et trouver l'adresse IP des cartes connectées.
@@ -113,6 +235,8 @@ echo "Daemon started"
 
 ```
 
-![Alt text](image.png)
+![Alt text](img/daemonInstall.png)
+Chaque utilisateur connecté à la carte reçoit un train toutes les 5 minutes.
 
-![Alt text](img/image.png)
+Démo sur Youtube: [lien](https://youtu.be/H97HoAiaLtM)
+
